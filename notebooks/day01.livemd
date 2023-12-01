@@ -1,0 +1,27 @@
+# Day 1
+
+```elixir
+Mix.install([
+  {:my_aoc, path: Path.join(__DIR__, "../my_aoc")}
+])
+```
+
+## Puzzle
+
+```elixir
+client = MyAOC.client!(2023, 1)
+prompt = MyAOC.prompt!(client)
+```
+
+```elixir
+input = MyAOC.input!(client)
+IO.puts(input)
+```
+
+## Part 1
+
+```elixir
+
+```
+
+<!-- livebook:{"offset":266,"stamp":{"token":"XCP.0TnVCzyBmWW2ybuUYR1n6GQmR67h9045_t3LKpPihf-WVvPpxBLvbOVJM4z-LkDI87mmSAIUGCcqzgKHARFIpILee1ggcuQxvxPIpm86nn6z8HEnIyU","version":2}} -->
