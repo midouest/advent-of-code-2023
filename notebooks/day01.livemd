@@ -84,8 +84,9 @@ end
 calibration_value = fn line ->
   matches =
     0..(String.length(line) - 1)
-    |> Enum.map(&String.slice(line, &1..String.length(line)))
-    |> Enum.map(&Regex.run(~r/\d|zero|one|two|three|four|five|six|seven|eight|nine/, &1))
+    |> Enum.map(
+      &Regex.run(~r/\d|zero|one|two|three|four|five|six|seven|eight|nine/, line, offset: &1)
+    )
     |> Enum.filter(&(!is_nil(&1)))
     |> Enum.flat_map(&Function.identity/1)
 
@@ -115,4 +116,4 @@ res = MyAOC.answer!(aoc, 2, answer)
 Kino.HTML.new(res)
 ```
 
-<!-- livebook:{"offset":1821,"stamp":{"token":"XCP.OrpgrXjA9qzBlpNNK_Fjy39uasHTigfaW2UH47KXdXFiHV0RWJnt1aECTmf0gviVa0DdePabRZ88mm8G4K81qjzC5A5iSoOEBPGtvTOkJsFISE-i7R8","version":2}} -->
+<!-- livebook:{"offset":1785,"stamp":{"token":"XCP.yr1BB4fKL7gfUseiQRo5adofsKfxy6DkGVjd5SdDGgQeRbecEwb4HBBRWKSbcETTRHcN0kFpNPdst6sSugZY9hEWCbxh98uFo0aTAb20aUXnNcERxTo","version":2}} -->
