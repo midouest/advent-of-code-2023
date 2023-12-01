@@ -9,12 +9,12 @@ Mix.install([
 ## Puzzle
 
 ```elixir
-client = MyAOC.client(2023, 1)
-prompt = MyAOC.prompt!(client)
+aoc = MyAOC.new(2023, 1)
+prompt = MyAOC.prompt!(aoc)
 ```
 
 ```elixir
-input = MyAOC.input!(client)
+input = MyAOC.input!(aoc)
 IO.puts(input)
 ```
 
@@ -24,4 +24,4 @@ IO.puts(input)
 
 ```
 
-<!-- livebook:{"offset":265,"stamp":{"token":"XCP.eZA9-C1OKW0FyxbShNQVyU_EeSOPPXAGmWsk_l8fzV3ZhjubWlIjZ2-KdUgMNd7fKrrl0o5ezqP7rHD6OIuQrQflnxuySnx94XElPrYV45iuCzh6AkQ","version":2}} -->
+<!-- livebook:{"offset":253,"stamp":{"token":"XCP.E-fkVNiEumRWQ5H2ahrvfXBvTgCtIMq2t4o9cSkciccQj3vt_vHz7UXkPXUT3zHgRpK1cVOsnTonhz2ws8GSKjqWkhdjP13uVojBaUNCpP3MHowVjbo","version":2}} -->

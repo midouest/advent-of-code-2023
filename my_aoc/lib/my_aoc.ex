@@ -10,7 +10,7 @@ defmodule MyAOC do
   defstruct [:year, :day]
   alias __MODULE__, as: Client
 
-  def client(year, day) do
+  def new(year, day) do
     %Client{
       year: year,
       day: day
