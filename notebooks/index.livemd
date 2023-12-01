@@ -1,0 +1,7 @@
+# Index
+
+```elixir
+Mix.install([
+  {:my_aoc, path: Path.join(__DIR__, "../my_aoc")},
+])
+```
