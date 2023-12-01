@@ -2,7 +2,6 @@
 
 ```elixir
 Mix.install([
-  {:my_aoc, path: Path.join(__DIR__, "../my_aoc")},
   {:kino, "~> 0.11.3"}
 ])
 ```
@@ -10,17 +9,11 @@ Mix.install([
 ## Puzzle
 
 ```elixir
-aoc = MyAOC.new(2023, 1)
-
-MyAOC.prompt!(aoc)
-|> Kino.HTML.new()
+textarea = Kino.Input.textarea("Input")
 ```
 
 ```elixir
-input = MyAOC.input!(aoc)
-
-IO.inspect(input)
-|> Kino.Text.new(terminal: true)
+input = Kino.Input.read(textarea)
 ```
 
 <!-- livebook:{"branch_parent_index":0} -->
@@ -55,11 +48,6 @@ answer =
   |> String.splitter("\n")
   |> Enum.map(calibration_value)
   |> Enum.sum()
-```
-
-```elixir
-res = MyAOC.answer!(aoc, 1, answer)
-Kino.HTML.new(res)
 ```
 
 <!-- livebook:{"branch_parent_index":0} -->
@@ -111,9 +99,4 @@ answer =
   |> Enum.sum()
 ```
 
-```elixir
-res = MyAOC.answer!(aoc, 2, answer)
-Kino.HTML.new(res)
-```
-
-<!-- livebook:{"offset":1785,"stamp":{"token":"XCP.yr1BB4fKL7gfUseiQRo5adofsKfxy6DkGVjd5SdDGgQeRbecEwb4HBBRWKSbcETTRHcN0kFpNPdst6sSugZY9hEWCbxh98uFo0aTAb20aUXnNcERxTo","version":2}} -->
+<!-- livebook:{"offset":1525,"stamp":{"token":"XCP.pJrNGxs02ujI6WvOuLPvVvJ9RpHcQgOd1r8FxE6buCVGHFkEhUt0aJwJpcD1nyVf6wzwtrGjJD2ay7d1KehiDsCZPuVHqxL0pbPZPyeiQQVyQEe_G0M","version":2}} -->
