@@ -2,7 +2,8 @@
 
 ```elixir
 Mix.install([
-  {:my_aoc, path: Path.join(__DIR__, "../my_aoc")}
+  {:my_aoc, path: Path.join(__DIR__, "../my_aoc")},
+  {:kino, "~> 0.11.3"}
 ])
 ```
 
@@ -10,18 +11,104 @@ Mix.install([
 
 ```elixir
 aoc = MyAOC.new(2023, 1)
-prompt = MyAOC.prompt!(aoc)
+
+MyAOC.prompt!(aoc)
+|> Kino.HTML.new()
 ```
 
 ```elixir
 input = MyAOC.input!(aoc)
-IO.puts(input)
+
+IO.inspect(input)
+|> Kino.Text.new(terminal: true)
 ```
 
 ## Part 1
 
 ```elixir
+calibration_value1 = fn line ->
+  chars =
+    line
+    |> String.graphemes()
 
+  {first, _} =
+    chars
+    |> Enum.find(&String.match?(&1, ~r/\d/))
+    |> Integer.parse()
+
+  {last, _} =
+    chars
+    |> Enum.reverse()
+    |> Enum.find(&String.match?(&1, ~r/\d/))
+    |> Integer.parse()
+
+  Integer.undigits([first, last])
+end
 ```
 
-<!-- livebook:{"offset":253,"stamp":{"token":"XCP.E-fkVNiEumRWQ5H2ahrvfXBvTgCtIMq2t4o9cSkciccQj3vt_vHz7UXkPXUT3zHgRpK1cVOsnTonhz2ws8GSKjqWkhdjP13uVojBaUNCpP3MHowVjbo","version":2}} -->
+```elixir
+part1 =
+  input
+  |> String.trim_trailing()
+  |> String.splitter("\n")
+  |> Enum.map(calibration_value1)
+  |> Enum.sum()
+```
+
+```elixir
+res = MyAOC.answer!(aoc, 1, part1)
+Kino.HTML.new(res)
+```
+
+## Part 2
+
+```elixir
+to_digit = fn
+  "zero" -> 0
+  "one" -> 1
+  "two" -> 2
+  "three" -> 3
+  "four" -> 4
+  "five" -> 5
+  "six" -> 6
+  "seven" -> 7
+  "eight" -> 8
+  "nine" -> 9
+  d -> Integer.parse(d) |> elem(0)
+end
+
+calibration_value2 = fn line ->
+  matches =
+    0..(String.length(line) - 1)
+    |> Enum.map(&String.slice(line, &1..String.length(line)))
+    |> Enum.map(&Regex.run(~r/\d|zero|one|two|three|four|five|six|seven|eight|nine/, &1))
+    |> Enum.filter(&(!is_nil(&1)))
+    |> Enum.flat_map(&Function.identity/1)
+
+  first =
+    List.first(matches)
+    |> to_digit.()
+
+  last =
+    List.last(matches)
+    |> to_digit.()
+
+  Integer.undigits([first, last])
+end
+```
+
+```elixir
+part2 =
+  input
+  |> String.trim_trailing()
+  |> String.splitter("\n")
+  |> Enum.map(calibration_value2)
+  |> Enum.sum()
+```
+
+```elixir
+res = MyAOC.answer!(aoc, 2, part2)
+Kino.HTML.new(res)
+```
+
+<!-- livebook:{"offset":1731,"stamp":{"token":"XCP.jTAFUf8VZQ-b1ZxXzmuBvPgU9Yp7ifnqP8wUcRMFO7tX2VNYnqdt4snCiNP2_jSbNOnVDfBJbxhVBitXA2eMmNFRJxzYbTTrD0TfgeHI3FgkDl_5r1s","version":2}} -->
