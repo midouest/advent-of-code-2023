@@ -1,0 +1,40 @@
+# Day 0
+
+```elixir
+Mix.install([
+  {:req, "~> 0.4.5"},
+  {:kino, "~> 0.11.3"}
+])
+```
+
+## Input
+
+```elixir
+session = System.fetch_env!("LB_AOC_SESSION")
+
+input =
+  Req.get!(
+    "https://adventofcode.com/2023/day/0/input",
+    headers: [{"Cookie", ~s"session=#{session}"}]
+  ).body
+
+Kino.Text.new(input, terminal: true)
+```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Part 1
+
+```elixir
+
+```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Part 2
+
+```elixir
+
+```
+
+<!-- livebook:{"offset":467,"stamp":{"token":"XCP.9r6lXjsMPxqapIaveGuV8XHAaUZ2cft0gPazZpK8uYRU60ENqb2ssiFVwoZ5AewecXVvNB5Q5W1JPq0Uu0-TUxPPW3Y0JWBTGbqIs9Yw6_1ViTzr1NQ","version":2}} -->
