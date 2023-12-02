@@ -2,6 +2,7 @@
 
 ```elixir
 Mix.install([
+  {:req, "~> 0.4.5"},
   {:kino, "~> 0.11.3"}
 ])
 ```
@@ -9,11 +10,15 @@ Mix.install([
 ## Puzzle
 
 ```elixir
-textarea = Kino.Input.textarea("Input")
-```
+session = System.fetch_env!("LB_AOC_SESSION")
 
-```elixir
-input = Kino.Input.read(textarea)
+input =
+  Req.get!(
+    "https://adventofcode.com/2023/day/1/input",
+    headers: [{"Cookie", ~s"session=#{session}"}]
+  ).body
+
+Kino.Text.new(input, terminal: true)
 ```
 
 <!-- livebook:{"branch_parent_index":0} -->
@@ -99,4 +104,4 @@ answer =
   |> Enum.sum()
 ```
 
-<!-- livebook:{"offset":1525,"stamp":{"token":"XCP.pJrNGxs02ujI6WvOuLPvVvJ9RpHcQgOd1r8FxE6buCVGHFkEhUt0aJwJpcD1nyVf6wzwtrGjJD2ay7d1KehiDsCZPuVHqxL0pbPZPyeiQQVyQEe_G0M","version":2}} -->
+<!-- livebook:{"offset":1671,"stamp":{"token":"XCP.Q4wCV5I-pYUS3rsPmfRhRngyUJZMKiN4HilY-Ag8yB5FQuZE6NvQ_Ss_1umacq8HKaPZ9xDL5IP7BwVlPVGo1r2D0sYlyw-cg9EiOLePPttvTYHr8zE","version":2}} -->
