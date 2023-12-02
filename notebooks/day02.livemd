@@ -1,0 +1,84 @@
+# Day 2
+
+```elixir
+Mix.install([
+  {:req, "~> 0.4.5"},
+  {:kino, "~> 0.11.3"}
+])
+```
+
+## Input
+
+```elixir
+session = System.fetch_env!("LB_AOC_SESSION")
+
+input =
+  Req.get!(
+    "https://adventofcode.com/2023/day/2/input",
+    headers: [{"Cookie", ~s"session=#{session}"}]
+  ).body
+
+Kino.Text.new(input, terminal: true)
+```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Part 1
+
+```elixir
+defmodule Part1 do
+  def answer(text, %{} = bag) do
+    text
+    |> String.trim_trailing()
+    |> String.splitter("\n")
+    |> Enum.map(fn line ->
+      Regex.scan(~r/(\d+) (\w+)/, line)
+      |> Enum.map(fn [_, n, color] ->
+        {String.to_integer(n), color}
+      end)
+      |> Enum.reduce(%{}, fn {n, color}, acc ->
+        Map.put(acc, color, max(n, Map.get(acc, color, 0)))
+      end)
+    end)
+    |> Enum.with_index(1)
+    |> Enum.filter(fn {set, _} ->
+      Enum.all?(set, fn {key, value} -> value <= bag[key] end)
+    end)
+    |> Enum.map(&elem(&1, 1))
+    |> Enum.sum()
+  end
+end
+
+bag = %{"red" => 12, "green" => 13, "blue" => 14}
+Part1.answer(input, bag)
+```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Part 2
+
+```elixir
+defmodule Part2 do
+  def answer(text) do
+    text
+    |> String.trim_trailing()
+    |> String.splitter("\n")
+    |> Enum.map(fn line ->
+      Regex.scan(~r/(\d+) (\w+)/, line)
+      |> Enum.map(fn [_, n, color] ->
+        {String.to_integer(n), color}
+      end)
+      |> Enum.reduce(%{}, fn {n, color}, acc ->
+        Map.put(acc, color, max(n, Map.get(acc, color, 0)))
+      end)
+      |> Map.values()
+      |> Enum.product()
+    end)
+    |> Enum.sum()
+  end
+end
+
+Part2.answer(input)
+```
+
+<!-- livebook:{"offset":1619,"stamp":{"token":"XCP.6w0dIab8FGv21J-1Ub1UggS2_1cDvhuZ8mro6WL4xWbqAIDt5mLh73EWvNMWsPPV6mjpiVrbPm0E1QQghbkE2aYkY0JXFdRo3KG3hLr0JhI1lD5rJm8","version":2}} -->
