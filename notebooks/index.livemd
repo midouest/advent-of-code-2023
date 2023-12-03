@@ -2,5 +2,6 @@
 
 ## Solutions
 
-[Day 1](day01.livemd)
-[Day 2](day02.livemd)
+- [Day 1](day01.livemd)
+- [Day 2](day02.livemd)
+- [Day 3](day03.livemd)
