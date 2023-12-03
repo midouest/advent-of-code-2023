@@ -1,0 +1,160 @@
+# Day 3
+
+```elixir
+Mix.install([
+  {:req, "~> 0.4.5"},
+  {:kino, "~> 0.11.3"}
+])
+```
+
+## Input
+
+```elixir
+session = System.fetch_env!("LB_AOC_SESSION")
+
+input =
+  Req.get!(
+    "https://adventofcode.com/2023/day/3/input",
+    headers: [{"Cookie", ~s"session=#{session}"}]
+  ).body
+
+Kino.Text.new(input, terminal: true)
+```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Part 1
+
+```elixir
+defmodule Part1 do
+  def answer(text) do
+    lines = String.split(text, "\n", trim: true)
+    max_x = lines |> Enum.at(0) |> String.length()
+    max_y = length(lines)
+
+    for {line, y} <- Enum.with_index(lines),
+        matches <- Regex.scan(~r/\d+/, line, return: :index),
+        {x, w} <- matches,
+        reduce: 0 do
+      sum ->
+        if part_number?(lines, max_x, max_y, x, y, w) do
+          sum + to_part_number(line, x, w)
+        else
+          sum
+        end
+    end
+  end
+
+  defp part_number?(lines, max_x, max_y, x, y, w) do
+    adjacent(x, y, w)
+    |> Enum.any?(&symbol?(lines, max_x, max_y, &1))
+  end
+
+  defp adjacent(x0, y0, w) do
+    Stream.flat_map((y0 - 1)..(y0 + 1), fn y ->
+      Stream.flat_map((x0 - 1)..(x0 + w), fn x ->
+        [{x, y}]
+      end)
+    end)
+  end
+
+  defp symbol?(lines, max_x, max_y, {x, y}) do
+    x >= 0 and x < max_x and y >= 0 and y < max_y and
+      lines
+      |> Enum.at(y)
+      |> String.at(x)
+      |> String.match?(~r/[^.\d]/)
+  end
+
+  defp to_part_number(line, i, n) do
+    line
+    |> String.slice(i, n)
+    |> String.to_integer()
+  end
+end
+
+Part1.answer(input)
+```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Part 2
+
+```elixir
+defmodule Part2 do
+  def answer(text) do
+    lines = String.split(text, "\n", trim: true)
+    max_x = lines |> Enum.at(0) |> String.length()
+    buffer = String.duplicate(".", max_x)
+    lines = [buffer] ++ lines ++ [buffer]
+    lines = for line <- lines, do: "." <> line <> "."
+
+    %{part_coords: part_coords, numbers: numbers} =
+      for {line, y} <- lines |> Enum.with_index(),
+          matches <- Regex.scan(~r/\d+/, line, return: :index),
+          {x, w} <- matches,
+          reduce: %{part_coords: %{}, numbers: %{}} do
+        %{part_coords: part_coords, numbers: numbers} = acc ->
+          part_number = to_part_number(line, x, w)
+          part_id = map_size(numbers)
+          numbers = Map.put(numbers, part_id, part_number)
+
+          part_coords =
+            for x1 <- x..(x + w - 1), into: part_coords do
+              {{x1, y}, part_id}
+            end
+
+          %{acc | part_coords: part_coords, numbers: numbers}
+      end
+
+    for {line, y} <- lines |> Enum.with_index(),
+        matches <- Regex.scan(~r/[^.\d]/, line, return: :index),
+        {x, w} <- matches,
+        reduce: 0 do
+      acc ->
+        part_numbers =
+          adjacent(x, y, w)
+          |> Enum.reduce_while(MapSet.new(), fn coord, part_ids ->
+            part_id = part_coords[coord]
+
+            if part_id != nil do
+              part_ids = MapSet.put(part_ids, part_id)
+
+              if MapSet.size(part_ids) > 2 do
+                {:halt, []}
+              else
+                {:cont, part_ids}
+              end
+            else
+              {:cont, part_ids}
+            end
+          end)
+          |> Enum.map(&numbers[&1])
+
+        if length(part_numbers) != 2 do
+          acc
+        else
+          acc + Enum.product(part_numbers)
+        end
+    end
+  end
+
+  defp adjacent(x0, y0, w) do
+    Stream.flat_map((y0 - 1)..(y0 + 1), fn y ->
+      Stream.flat_map((x0 - 1)..(x0 + w), fn x ->
+        [{x, y}]
+      end)
+    end)
+  end
+
+  defp to_part_number(line, i, n) do
+    line
+    |> String.slice(i, n)
+    |> String.to_integer()
+  end
+end
+
+Part2.answer(input)
+```
+
+<!-- livebook:{"offset":3662,"stamp":{"token":"XCP.SD3w5QSfxrNPVhm9liDGlMlyE2YCcaCf_Byaf9LtQhxpFqMEIXORxGjMP6JYJJZqEK9VXdufVjfEz5oiLq5xiChXtowxN08CwJB5I3NKrMH5m6CCpXQ","version":2}} -->
