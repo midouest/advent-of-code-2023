@@ -1,0 +1,87 @@
+# Day 4
+
+```elixir
+Mix.install([
+  {:req, "~> 0.4.5"},
+  {:kino, "~> 0.11.3"}
+])
+```
+
+## Input
+
+```elixir
+session = System.fetch_env!("LB_AOC_SESSION")
+
+input =
+  Req.get!(
+    "https://adventofcode.com/2023/day/4/input",
+    headers: [{"Cookie", ~s"session=#{session}"}]
+  ).body
+
+Kino.Text.new(input, terminal: true)
+```
+
+## Part 1
+
+```elixir
+lines = String.split(input, "\n", trim: true)
+
+parse_line = fn line ->
+  [_, line] = String.split(line, ":")
+  [win, have] = String.split(line, "|")
+  win_nums = Regex.scan(~r/\d+/, win) |> List.flatten() |> Enum.map(&String.to_integer/1)
+  have_nums = Regex.scan(~r/\d+/, have) |> List.flatten() |> Enum.map(&String.to_integer/1)
+  {win_nums, have_nums}
+end
+
+cards = Enum.map(lines, parse_line)
+
+matches = fn {win, have} ->
+  MapSet.new(win)
+  |> MapSet.intersection(MapSet.new(have))
+  |> MapSet.size()
+end
+
+score = fn card ->
+  won = matches.(card)
+  if won == 0, do: 0, else: 2 ** (won - 1)
+end
+
+cards
+|> Enum.map(score)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+num_cards = length(cards)
+
+initial_copies =
+  1..num_cards
+  |> Enum.map(fn id -> {id, 1} end)
+  |> Map.new()
+
+cards
+|> Enum.with_index(1)
+|> Enum.reduce(initial_copies, fn {card, id}, copies ->
+  won = matches.(card)
+
+  if won == 0 do
+    copies
+  else
+    multiplier = copies[id]
+    start_id = id + 1
+    stop_id = min(id + won, num_cards)
+
+    for copy_id <- start_id..stop_id,
+        reduce: copies do
+      copies -> Map.update!(copies, copy_id, fn existing -> existing + multiplier end)
+    end
+  end
+end)
+|> Map.values()
+|> Enum.sum()
+```
+
+<!-- livebook:{"offset":1558,"stamp":{"token":"XCP.hwAkcoQ1iwFDI6142X2EGmfoarIQjF474gMHJkP5ISSugNhw_wgT2qUoJR7dSU5H4LRBvAk5sr0qjMaySyCGzeawWmXVcwmMFGoReG1Ty2jFdcp2G4s","version":2}} -->
