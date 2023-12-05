@@ -1,0 +1,133 @@
+# Day 5
+
+```elixir
+Mix.install([
+  {:req, "~> 0.4.5"},
+  {:kino, "~> 0.11.3"}
+])
+```
+
+## Input
+
+```elixir
+session = System.fetch_env!("LB_AOC_SESSION")
+
+input =
+  Req.get!(
+    "https://adventofcode.com/2023/day/5/input",
+    headers: [{"Cookie", ~s"session=#{session}"}]
+  ).body
+
+Kino.Text.new(input, terminal: true)
+```
+
+## Part 1
+
+```elixir
+[seeds | maps] = String.split(input, "\n\n")
+
+to_integers = fn line ->
+  Regex.scan(~r/\d+/, line)
+  |> List.flatten()
+  |> Enum.map(&String.to_integer/1)
+end
+
+seeds = to_integers.(seeds)
+```
+
+```elixir
+maps =
+  for map <- maps do
+    [_ | ranges] = String.split(map, "\n", trim: true)
+
+    for range <- ranges do
+      range
+      |> to_integers.()
+      |> List.to_tuple()
+    end
+  end
+```
+
+```elixir
+to_location = fn seed ->
+  for map <- maps, reduce: seed do
+    acc ->
+      Enum.reduce_while(map, acc, fn {dst, src, len}, val ->
+        if val >= src and val < src + len do
+          {:halt, val - src + dst}
+        else
+          {:cont, val}
+        end
+      end)
+  end
+end
+
+seeds
+|> Enum.map(to_location)
+|> Enum.min()
+```
+
+## Part 2
+
+```elixir
+seed_ranges =
+  Enum.chunk_every(seeds, 2)
+  |> Enum.map(&List.to_tuple/1)
+
+overlap_and_map = fn {dst_off, src_off, src_len}, {in_off, in_len} = input ->
+  input_end = in_off + in_len - 1
+  src_end = src_off + src_len - 1
+
+  if input_end < src_off or src_end < in_off do
+    {:disjoint, input}
+  else
+    map_off = max(in_off, src_off)
+    map_end = min(input_end, src_end)
+
+    mapped = {dst_off + map_off - src_off, map_end - map_off + 1}
+
+    unmapped =
+      [
+        {in_off, map_off - in_off},
+        {map_end + 1, input_end - map_end}
+      ]
+      |> Enum.filter(fn {_, n} -> n > 0 end)
+
+    {:intersecting, mapped, unmapped}
+  end
+end
+
+to_locations = fn seed_range ->
+  for map <- maps, reduce: [seed_range] do
+    inputs ->
+      for map_range <- map,
+          reduce: {[], inputs} do
+        {cur_mapped, cur_unmapped} ->
+          {new_mapped, new_unmapped} =
+            for range <- cur_unmapped,
+                reduce: {[], []} do
+              {mapped_acc, unmapped_acc} ->
+                case overlap_and_map.(map_range, range) do
+                  {:disjoint, range} ->
+                    {mapped_acc, unmapped_acc ++ [range]}
+
+                  {:intersecting, mapped, unmapped} ->
+                    {mapped_acc ++ [mapped], unmapped_acc ++ unmapped}
+                end
+            end
+
+          {cur_mapped ++ new_mapped, new_unmapped}
+      end
+      |> Tuple.to_list()
+      |> List.flatten()
+  end
+end
+
+seed_ranges
+|> Enum.map(to_locations)
+|> List.flatten()
+|> Enum.map(&elem(&1, 0))
+|> Enum.min()
+```
+
+<!-- livebook:{"offset":2638,"stamp":{"token":"XCP.61L1gzcpW8IB7lb2EcF2VgCPd89vY8mVtT-WDIkkGKR7oB9j07zhvrDQI28VxJEFpK8ngI41FPvTBJQGgC9s64_Kgn1yIiNqy9bEDUhJerRhJbwuK4Y","version":2}} -->
