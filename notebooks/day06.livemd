@@ -1,0 +1,74 @@
+# Day 6
+
+```elixir
+Mix.install([
+  {:req, "~> 0.4.5"},
+  {:kino, "~> 0.11.3"}
+])
+```
+
+## Input
+
+```elixir
+session = System.fetch_env!("LB_AOC_SESSION")
+
+input =
+  Req.get!(
+    "https://adventofcode.com/2023/day/6/input",
+    headers: [{"Cookie", ~s"session=#{session}"}]
+  ).body
+
+Kino.Text.new(input, terminal: true)
+```
+
+## Part 1
+
+```elixir
+[time, distance] =
+  for line <- String.split(input, "\n", trim: true) do
+    line
+    |> String.split()
+    |> Enum.drop(1)
+    |> Enum.map(&String.to_integer/1)
+  end
+```
+
+```elixir
+run = fn race_len, btn_len ->
+  (race_len - btn_len) * btn_len
+end
+
+winning_outcomes = fn race_len, record ->
+  Stream.iterate(1, &(&1 + 1))
+  |> Stream.map(&run.(race_len, &1))
+  |> Stream.take_while(&(&1 > 0))
+  |> Enum.filter(&(&1 > record))
+end
+
+margin_of_error = fn times, distances ->
+  for {race_len, record} <- Enum.zip(times, distances) do
+    winning_outcomes.(race_len, record)
+    |> length()
+  end
+  |> Enum.product()
+end
+
+margin_of_error.(time, distance)
+```
+
+## Part 2
+
+```elixir
+[actual_time, actual_distance] =
+  for line <- String.split(input, "\n", trim: true) do
+    line
+    |> String.split()
+    |> Enum.drop(1)
+    |> Enum.join()
+    |> String.to_integer()
+  end
+
+margin_of_error.([actual_time], [actual_distance])
+```
+
+<!-- livebook:{"offset":1271,"stamp":{"token":"XCP.UCiG2_9Fg6ZMVRz4FEtQLmaOn8tG5PX_1e5ktcXkNGZt_w8n1LfBAI22_ANBwP_tNLZlYsERZDOXfjUK-VilegRSbDlDjWgL2FlCN1jWCGcCT8OUkis","version":2}} -->

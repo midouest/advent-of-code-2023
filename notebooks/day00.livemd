@@ -21,15 +21,11 @@ input =
 Kino.Text.new(input, terminal: true)
 ```
 
-<!-- livebook:{"branch_parent_index":0} -->
-
 ## Part 1
 
 ```elixir
 
 ```
-
-<!-- livebook:{"branch_parent_index":0} -->
 
 ## Part 2
 
@@ -37,4 +33,4 @@ Kino.Text.new(input, terminal: true)
 
 ```
 
-<!-- livebook:{"offset":467,"stamp":{"token":"XCP.9r6lXjsMPxqapIaveGuV8XHAaUZ2cft0gPazZpK8uYRU60ENqb2ssiFVwoZ5AewecXVvNB5Q5W1JPq0Uu0-TUxPPW3Y0JWBTGbqIs9Yw6_1ViTzr1NQ","version":2}} -->
+<!-- livebook:{"offset":377,"stamp":{"token":"XCP.j2EU9sp7OiPN-7fpxTTQYY06RBtI0wQuJPdN4b7cf0qD8qsL1Cd8xqpxGaUY68H330NAL3gL__P7_vmdo2r1UIX_0lv28zG5EQkP4F8s5lhm3SkivGw","version":2}} -->
