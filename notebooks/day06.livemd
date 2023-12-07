@@ -34,26 +34,27 @@ Kino.Text.new(input, terminal: true)
 ```
 
 ```elixir
-run = fn race_len, btn_len ->
-  (race_len - btn_len) * btn_len
-end
-
-winning_outcomes = fn race_len, record ->
-  Stream.iterate(1, &(&1 + 1))
-  |> Stream.map(&run.(race_len, &1))
-  |> Stream.take_while(&(&1 > 0))
-  |> Enum.filter(&(&1 > record))
-end
-
-margin_of_error = fn times, distances ->
-  for {race_len, record} <- Enum.zip(times, distances) do
-    winning_outcomes.(race_len, record)
-    |> length()
+defmodule Part1 do
+  def run(race_len, btn_len) do
+    (race_len - btn_len) * btn_len
   end
-  |> Enum.product()
+
+  def winning_outcomes(race_len, record) do
+    Stream.iterate(1, &(&1 + 1))
+    |> Stream.map(&run(race_len, &1))
+    |> Stream.take_while(&(&1 > 0))
+    |> Enum.count(&(&1 > record))
+  end
+
+  def margin_of_error(times, distances) do
+    for {race_len, record} <- Enum.zip(times, distances) do
+      winning_outcomes(race_len, record)
+    end
+    |> Enum.product()
+  end
 end
 
-margin_of_error.(time, distance)
+Part1.margin_of_error(time, distance)
 ```
 
 ## Part 2
@@ -68,7 +69,7 @@ margin_of_error.(time, distance)
     |> String.to_integer()
   end
 
-margin_of_error.([actual_time], [actual_distance])
+Part1.margin_of_error([actual_time], [actual_distance])
 ```
 
-<!-- livebook:{"offset":1271,"stamp":{"token":"XCP.UCiG2_9Fg6ZMVRz4FEtQLmaOn8tG5PX_1e5ktcXkNGZt_w8n1LfBAI22_ANBwP_tNLZlYsERZDOXfjUK-VilegRSbDlDjWgL2FlCN1jWCGcCT8OUkis","version":2}} -->
+<!-- livebook:{"offset":1315,"stamp":{"token":"XCP.Dy8wayKwn4T1WfsTJHD1Nvayb7TLZEDXwOl318AugWOkZIVi9RDFVzDryCuJEmvDdAdY4Gs-y0v5AdwrMDJzICiaZ4_oYgd9lgfeG5ppT4qEh2a0tDU","version":2}} -->
