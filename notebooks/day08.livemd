@@ -1,0 +1,73 @@
+# Day 8
+
+```elixir
+Mix.install([
+  {:req, "~> 0.4.5"},
+  {:kino, "~> 0.11.3"}
+])
+```
+
+## Input
+
+```elixir
+session = System.fetch_env!("LB_AOC_SESSION")
+
+input =
+  Req.get!(
+    "https://adventofcode.com/2023/day/8/input",
+    headers: [{"Cookie", ~s"session=#{session}"}]
+  ).body
+
+Kino.Text.new(input, terminal: true)
+```
+
+## Part 1
+
+```elixir
+[instructions, nodes] = String.split(input, "\n\n")
+
+nodes =
+  for line <- String.split(nodes, "\n", trim: true), into: Map.new() do
+    [head | rest] = String.split(line, ~r/[ =\(\),]/, trim: true)
+    {head, rest}
+  end
+
+defmodule Part1 do
+  def solve(instructions, nodes, initial, fun) do
+    String.graphemes(instructions)
+    |> Stream.cycle()
+    |> Enum.reduce_while({initial, 0}, fn instruction, {node, count} ->
+      if fun.(node) do
+        {:halt, count}
+      else
+        neighbors = nodes[node]
+
+        case instruction do
+          "L" -> {:cont, {hd(neighbors), count + 1}}
+          "R" -> {:cont, {hd(tl(neighbors)), count + 1}}
+        end
+      end
+    end)
+  end
+end
+
+Part1.solve(instructions, nodes, "AAA", &(&1 == "ZZZ"))
+```
+
+## Part 2
+
+```elixir
+starting_nodes =
+  nodes
+  |> Map.keys()
+  |> Enum.filter(&String.ends_with?(&1, "A"))
+
+lcm = fn a, b -> trunc(abs(a * b) / Integer.gcd(a, b)) end
+
+for initial <- starting_nodes do
+  Part1.solve(instructions, nodes, initial, &String.ends_with?(&1, "Z"))
+end
+|> Enum.reduce(lcm)
+```
+
+<!-- livebook:{"offset":1400,"stamp":{"token":"XCP.tWz3LE0tHpAzurDmCY8M4E0DYdxDwV7Y-lHccRWZCGVMSjln-gw5n-WNM0tZfUpY3tlkcQSR8AS-qewxJmDSLCmtSNF4d0YLSad4EioKMBbdIK_Tmd8","version":2}} -->
