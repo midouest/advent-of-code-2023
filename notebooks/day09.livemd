@@ -1,0 +1,77 @@
+# Day 9
+
+```elixir
+Mix.install([
+  {:req, "~> 0.4.5"},
+  {:kino, "~> 0.11.3"}
+])
+```
+
+## Input
+
+```elixir
+input =
+  Req.get!(
+    "https://adventofcode.com/2023/day/9/input",
+    headers: [{"Cookie", ~s"session=#{System.fetch_env!("LB_AOC_SESSION")}"}]
+  ).body
+
+Kino.Text.new(input, terminal: true)
+```
+
+## Part 1
+
+```elixir
+histories =
+  for line <- String.split(input, "\n", trim: true) do
+    String.split(line)
+    |> Enum.map(&String.to_integer/1)
+  end
+```
+
+```elixir
+defmodule Part1 do
+  def difference(history, fun), do: difference(history, [], fun)
+
+  def difference(prev_diffs, rest_diffs, fun) do
+    if Enum.all?(prev_diffs, &(&1 == 0)) do
+      fun.(rest_diffs, 0)
+    else
+      next_diffs =
+        prev_diffs
+        |> Enum.chunk_every(2, 1, :discard)
+        |> Enum.map(fn xs -> Enum.reduce(xs, &Kernel.-/2) end)
+
+      difference(next_diffs, [prev_diffs | rest_diffs], fun)
+    end
+  end
+
+  def predictr([], extrapolation), do: extrapolation
+
+  def predictr([diffs | rest], extrapolation) do
+    predictr(rest, extrapolation + List.last(diffs))
+  end
+end
+
+histories
+|> Enum.map(fn history -> Part1.difference(history, &Part1.predictr/2) end)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+defmodule Part2 do
+  def predictl([], extrapolation), do: extrapolation
+
+  def predictl([[first | _] | rest], extrapolation) do
+    predictl(rest, first - extrapolation)
+  end
+end
+
+histories
+|> Enum.map(fn history -> Part1.difference(history, &Part2.predictl/2) end)
+|> Enum.sum()
+```
+
+<!-- livebook:{"offset":1488,"stamp":{"token":"XCP.d2P0E67ltSBz7zHwRWvDYC9XYpd4fYLdl6cmiZtCyL8ELAwcgQsDlanbQhtysUpwJIR-g_5eJ7u8Qr0Z75S2rZsjjnmrj_wWmlb4xv2ZN8_ERdO_CaU","version":2}} -->
