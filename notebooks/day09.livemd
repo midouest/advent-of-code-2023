@@ -3,7 +3,9 @@
 ```elixir
 Mix.install([
   {:req, "~> 0.4.5"},
-  {:kino, "~> 0.11.3"}
+  {:kino, "~> 0.11.3"},
+  {:vega_lite, "~> 0.1.8"},
+  {:kino_vega_lite, "~> 0.1.11"}
 ])
 ```
 
@@ -74,4 +76,68 @@ histories
 |> Enum.sum()
 ```
 
-<!-- livebook:{"offset":1488,"stamp":{"token":"XCP.d2P0E67ltSBz7zHwRWvDYC9XYpd4fYLdl6cmiZtCyL8ELAwcgQsDlanbQhtysUpwJIR-g_5eJ7u8Qr0Z75S2rZsjjnmrj_wWmlb4xv2ZN8_ERdO_CaU","version":2}} -->
+## Viz
+
+```elixir
+alias VegaLite, as: Vl
+
+defmodule Viz do
+  def difference(widget, history), do: difference(widget, history, [])
+
+  def difference(widget, prev_diffs, rest_diffs) do
+    i = length(rest_diffs)
+
+    data =
+      for {diff, x} <- Enum.with_index(prev_diffs) do
+        %{"x" => x, "y" => diff, "i" => i}
+      end
+
+    Kino.VegaLite.push_many(widget, data)
+    Process.sleep(div(500, i + 1))
+
+    if Enum.all?(prev_diffs, &(&1 == 0)) do
+      predictr(widget, [prev_diffs | rest_diffs])
+    else
+      next_diffs =
+        prev_diffs
+        |> Enum.chunk_every(2, 1, :discard)
+        |> Enum.map(fn xs -> Enum.reduce(xs, &Kernel.-/2) end)
+
+      difference(widget, next_diffs, [prev_diffs | rest_diffs])
+    end
+  end
+
+  def predictr(widget, diffs), do: predictr(widget, diffs, 0)
+  def predictr(_, [], extrapolation), do: extrapolation
+
+  def predictr(widget, [diffs | rest], extrapolation) do
+    next_extrapolation = extrapolation + List.last(diffs)
+
+    i = length(rest)
+
+    Kino.VegaLite.push(widget, %{
+      "x" => length(diffs),
+      "y" => next_extrapolation,
+      "i" => i
+    })
+
+    Process.sleep(div(500, i + 1))
+    predictr(widget, rest, next_extrapolation)
+  end
+end
+
+widget =
+  Vl.new(width: 600, height: 300)
+  |> Vl.mark(:line)
+  |> Vl.encode_field(:x, "x", type: :quantitative)
+  |> Vl.encode_field(:y, "y", type: :quantitative)
+  |> Vl.encode_field(:color, "i", type: :nominal)
+  |> Kino.VegaLite.render()
+
+for history <- histories do
+  Kino.VegaLite.clear(widget)
+  Viz.difference(widget, history)
+end
+```
+
+<!-- livebook:{"offset":3099,"stamp":{"token":"XCP.Qw6iqM5ZOfsMUwb_ZbP7AlWR5_ZN9sbCbCZKAcENvNjv8iLEovRucGbMChPbO6BFOI_tzndC_tZ2bwIcJC7FbzMXSa930cxebFX11EDzRedZQqqSwf0","version":2}} -->
