@@ -10,12 +10,10 @@ Mix.install([
 ## Input
 
 ```elixir
-session = System.fetch_env!("LB_AOC_SESSION")
-
 input =
   Req.get!(
     "https://adventofcode.com/2023/day/0/input",
-    headers: [{"Cookie", ~s"session=#{session}"}]
+    headers: [{"Cookie", ~s"session=#{System.fetch_env!("LB_AOC_SESSION")}"}]
   ).body
 
 Kino.Text.new(input, terminal: true)
@@ -33,4 +31,4 @@ Kino.Text.new(input, terminal: true)
 
 ```
 
-<!-- livebook:{"offset":377,"stamp":{"token":"XCP.j2EU9sp7OiPN-7fpxTTQYY06RBtI0wQuJPdN4b7cf0qD8qsL1Cd8xqpxGaUY68H330NAL3gL__P7_vmdo2r1UIX_0lv28zG5EQkP4F8s5lhm3SkivGw","version":2}} -->
+<!-- livebook:{"offset":358,"stamp":{"token":"XCP.luu35zi0Q0JGD6liUdMlISjpkSRhXOjCNYGyHsnD7TuylGbId0YMvcTxvMhcMPQaio4FIA2Mlg8rjxdBHS013wqoIU7Y0XIv607hKeQsHG7p9Yc0_VE","version":2}} -->
