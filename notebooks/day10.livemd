@@ -1,0 +1,154 @@
+# Day 10
+
+```elixir
+Mix.install([
+  {:req, "~> 0.4.5"},
+  {:kino, "~> 0.11.3"}
+])
+```
+
+## Input
+
+```elixir
+input =
+  Req.get!(
+    "https://adventofcode.com/2023/day/10/input",
+    headers: [{"Cookie", ~s"session=#{System.fetch_env!("LB_AOC_SESSION")}"}]
+  ).body
+
+Kino.Text.new(input, terminal: true)
+```
+
+## Part 1
+
+```elixir
+defmodule Part1 do
+  def parse(input) do
+    lines = String.split(input, "\n", trim: true)
+    height = length(lines)
+    width = String.length(hd(lines))
+    padding = String.duplicate(".", width)
+    lines = ([padding] ++ lines ++ [padding]) |> Enum.map(&("." <> &1 <> "."))
+
+    map =
+      for {line, y} <- Enum.with_index(lines),
+          {char, x} <- line |> String.graphemes() |> Enum.with_index(),
+          into: %{} do
+        {{y, x}, char}
+      end
+
+    {map, {height + 2, width + 2}}
+  end
+
+  @connections %{
+    "S" => [{-1, 0}, {1, 0}, {0, -1}, {0, 1}],
+    "|" => [{-1, 0}, {1, 0}],
+    "-" => [{0, -1}, {0, 1}],
+    "L" => [{-1, 0}, {0, 1}],
+    "J" => [{-1, 0}, {0, -1}],
+    "7" => [{1, 0}, {0, -1}],
+    "F" => [{1, 0}, {0, 1}],
+    "." => []
+  }
+
+  def loop(pipes) do
+    {{y, x} = start, _} = Enum.find(pipes, fn {_, char} -> char == "S" end)
+
+    {dy, dx} =
+      delta =
+      Enum.find(@connections[pipes[start]], fn {dy, dx} ->
+        {-dy, -dx} in @connections[pipes[{y + dy, x + dx}]]
+      end)
+
+    loop(pipes, start, {y + dy, x + dx}, delta, [start])
+  end
+
+  def loop(_, start, curr, _, path) when start == curr, do: Enum.reverse(path)
+
+  def loop(pipes, start, {y, x} = curr, {dy0, dx0}, path) do
+    [{dy1, dx1} = delta] = @connections[pipes[curr]] -- [{-dy0, -dx0}]
+    loop(pipes, start, {y + dy1, x + dx1}, delta, [curr | path])
+  end
+end
+
+{map, _} = Part1.parse(input)
+map |> Part1.loop() |> length() |> div(2)
+```
+
+## Part 2
+
+```elixir
+defmodule Part2 do
+  def enhance(map, {height, width}, path) do
+    map =
+      map
+      |> Enum.flat_map(fn {{y0, x0}, c} ->
+        {y1, x1} = {2 * y0, 2 * x0}
+
+        [
+          {{y1, x1}, c},
+          {{y1 - 1, x1}, "."},
+          {{y1 - 1, x1 - 1}, "."},
+          {{y1, x1 - 1}, "."}
+        ]
+        |> Enum.filter(fn {{y1, x1}, _} -> y1 >= 0 and x1 >= 0 end)
+      end)
+      |> Map.new()
+
+    {path, map} =
+      path
+      |> Enum.chunk_every(2, 1, Enum.take(path, 1))
+      |> Enum.flat_map_reduce(map, fn [{y0, x0}, {y1, x1}], acc ->
+        {dy, dx} = {y1 - y0, x1 - x0}
+        {y2, x2} = {2 * y0, 2 * x0}
+        gap = {y2 + dy, x2 + dx}
+        char = if abs(dy) == 1, do: "|", else: "-"
+        acc = %{acc | gap => char}
+
+        {[{y2, x2}, gap], acc}
+      end)
+
+    {map, {2 * height - 1, 2 * width - 1}, path}
+  end
+
+  def fill(map, size, path) do
+    path = MapSet.new(path)
+    frontier = [{0, 0}]
+    explored = MapSet.new(frontier) |> MapSet.union(path)
+    fill(map, size, frontier, explored)
+  end
+
+  defp fill(_, _, [], explored), do: explored
+
+  defp fill(map, {height, width} = size, [{y0, x0} | rest], explored) do
+    neighbors =
+      [{y0 - 1, x0}, {y0, x0 - 1}, {y0 + 1, x0}, {y0, x0 + 1}]
+      |> Enum.filter(fn {y1, x1} = coord ->
+        y1 >= 0 and
+          y1 < height and
+          x1 >= 0 and
+          x1 < width and
+          not MapSet.member?(explored, coord)
+      end)
+
+    frontier = neighbors ++ rest
+    explored = MapSet.new(neighbors) |> MapSet.union(explored)
+    fill(map, size, frontier, explored)
+  end
+end
+
+{map, size} = Part1.parse(input)
+path = Part1.loop(map)
+{map, size, path} = Part2.enhance(map, size, path)
+
+outside = Part2.fill(map, size, path)
+
+map
+|> Map.keys()
+|> MapSet.new()
+|> MapSet.difference(outside)
+|> Enum.filter(fn {y, x} -> rem(y, 2) == 0 and rem(x, 2) == 0 end)
+|> length()
+```
+
+<!-- livebook:{"offset":3674,"stamp":{"token":"XCP.C0QJcnm53KEzrixIRU_Q8lIRZouWtwvVV4l5NMQM0831-mjbk6HJuYGLfmdWn1zl2QmJlWQZcnjc85GWPT8hUirVD7d7LljoUcDyDfDhWHs--0uSZZg","version":2}} -->
