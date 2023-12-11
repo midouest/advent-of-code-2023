@@ -1,0 +1,118 @@
+# Day 11
+
+```elixir
+Mix.install([
+  {:req, "~> 0.4.5"},
+  {:kino, "~> 0.11.3"},
+  {:nx, "~> 0.6.4"}
+])
+```
+
+## Input
+
+```elixir
+input =
+  Req.get!(
+    "https://adventofcode.com/2023/day/11/input",
+    headers: [{"Cookie", ~s"session=#{System.fetch_env!("LB_AOC_SESSION")}"}]
+  ).body
+
+Kino.Text.new(input, terminal: true)
+```
+
+## Part 1
+
+```elixir
+sky =
+  for line <- String.split(input, "\n", trim: true) do
+    for char <- String.graphemes(line) do
+      if char == "#", do: 1, else: 0
+    end
+  end
+
+sky_tensor = Nx.tensor(sky, type: :u8, names: [:y, :x])
+empty_ys = Nx.any(sky_tensor, axes: [:x]) |> Nx.logical_not() |> Nx.to_list()
+empty_xs = Nx.any(sky_tensor, axes: [:y]) |> Nx.logical_not() |> Nx.to_list()
+
+pad_ys =
+  empty_ys
+  |> Enum.with_index()
+  |> Enum.flat_map(fn {empty, index} -> List.duplicate(index, empty + 1) end)
+  |> Nx.tensor(type: :u8)
+
+pad_xs =
+  empty_xs
+  |> Enum.with_index()
+  |> Enum.flat_map(fn {empty, index} -> List.duplicate(index, empty + 1) end)
+  |> Nx.tensor(type: :u8)
+
+big_sky =
+  sky_tensor
+  |> Nx.take(pad_ys, axis: :y)
+  |> Nx.take(pad_xs, axis: :x)
+
+galaxies =
+  for {line, y} <- big_sky |> Nx.to_list() |> Enum.with_index(),
+      {galaxy, x} <- Enum.with_index(line),
+      reduce: [] do
+    acc -> if galaxy == 1, do: [{y, x} | acc], else: acc
+  end
+
+pairs =
+  for {{y1, x1}, i} <- Enum.with_index(galaxies),
+      {y2, x2} <- Enum.drop(galaxies, i + 1) do
+    [[y1, x1], [y2, x2]]
+  end
+  |> Nx.tensor(type: :s64)
+
+Nx.abs(Nx.subtract(pairs[[.., 0, 0]], pairs[[.., 1, 0]]))
+|> Nx.add(Nx.abs(Nx.subtract(pairs[[.., 0, 1]], pairs[[.., 1, 1]])))
+|> Nx.sum()
+```
+
+## Part 2
+
+```elixir
+galaxies =
+  for {line, y} <- sky |> Enum.with_index(),
+      {galaxy, x} <- Enum.with_index(line),
+      reduce: [] do
+    acc -> if galaxy == 1, do: [{y, x} | acc], else: acc
+  end
+
+y_indexes =
+  empty_ys
+  |> Enum.with_index()
+  |> Enum.flat_map(fn
+    {1, i} -> [i]
+    _ -> []
+  end)
+
+x_indexes =
+  empty_xs
+  |> Enum.with_index()
+  |> Enum.flat_map(fn
+    {1, i} -> [i]
+    _ -> []
+  end)
+
+galaxies =
+  for {y, x} <- galaxies do
+    sy = Enum.count(y_indexes, &(&1 < y))
+    sx = Enum.count(x_indexes, &(&1 < x))
+    {y + 999_999 * sy, x + 999_999 * sx}
+  end
+
+pairs =
+  for {{y1, x1}, i} <- Enum.with_index(galaxies),
+      {y2, x2} <- Enum.drop(galaxies, i + 1) do
+    [[y1, x1], [y2, x2]]
+  end
+  |> Nx.tensor(type: :s64)
+
+Nx.abs(Nx.subtract(pairs[[.., 0, 0]], pairs[[.., 1, 0]]))
+|> Nx.add(Nx.abs(Nx.subtract(pairs[[.., 0, 1]], pairs[[.., 1, 1]])))
+|> Nx.sum()
+```
+
+<!-- livebook:{"offset":2508,"stamp":{"token":"XCP.bjqltnKrDZGOy7tbIal0C_gkVCmiQu0N6NAiHvtBsfpCbbEqxgOSjB5l_kR3KdHLP-XvqtE-aznChGZXAkHH0vM877BkBUitTKHseDmE8Sdaufm9DZo","version":2}} -->
