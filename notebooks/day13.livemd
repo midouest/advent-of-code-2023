@@ -1,0 +1,158 @@
+# Day 13
+
+```elixir
+Mix.install([
+  {:req, "~> 0.4.5"},
+  {:kino, "~> 0.11.3"},
+  {:nx, "~> 0.6.4"}
+])
+```
+
+## Input
+
+```elixir
+input =
+  Req.get!(
+    "https://adventofcode.com/2023/day/13/input",
+    headers: [{"Cookie", ~s"session=#{System.fetch_env!("LB_AOC_SESSION")}"}]
+  ).body
+
+Kino.Text.new(input, terminal: true)
+```
+
+## Part 1
+
+```elixir
+defmodule Part1 do
+  def parse(input) do
+    for pattern <- String.split(input, "\n\n") do
+      for line <- String.split(pattern, "\n", trim: true) do
+        String.graphemes(line)
+        |> Enum.map(fn c -> if c == "#", do: 1, else: 0 end)
+      end
+      |> Nx.tensor(type: :u8, names: [:y, :x])
+    end
+  end
+
+  def summarize(patterns) do
+    for pattern <- patterns do
+      {axis, {index, _}} =
+        reflect(pattern)
+
+      left = index + 1
+      if axis == :x, do: left, else: 100 * left
+    end
+    |> Enum.sum()
+  end
+
+  def reflect(pattern) do
+    [:x, :y]
+    |> Enum.map(fn axis -> {axis, reflect_along(pattern, axis)} end)
+    |> Enum.max_by(fn {_, {_, size}} -> size end)
+  end
+
+  def reflect_along(pattern, axis) do
+    0..Nx.axis_size(pattern, axis)
+    |> Enum.reduce({-1, -1}, fn index, {_, prev_size} = prev ->
+      {_, next_size} = next = reflect_at(pattern, axis, index)
+      if next_size > prev_size, do: next, else: prev
+    end)
+  end
+
+  def reflect_at(pattern, axis, index), do: reflect_at(pattern, axis, index, index + 1)
+
+  def reflect_at(pattern, axis, left, right) do
+    if left < 0 or right >= Nx.axis_size(pattern, axis) do
+      reflection(left + 1, right - 1)
+    else
+      left_tensor = pattern[Keyword.new([{axis, left}])]
+      right_tensor = pattern[Keyword.new([{axis, right}])]
+
+      if left_tensor != right_tensor do
+        {-1, -1}
+      else
+        reflect_at(pattern, axis, left - 1, right + 1)
+      end
+    end
+  end
+
+  def reflection(left, right) when left > right, do: {-1, -1}
+
+  def reflection(left, right) do
+    size = div(right - left, 2)
+    {left + size, size}
+  end
+end
+
+input
+|> Part1.parse()
+|> Part1.summarize()
+```
+
+## Part 2
+
+```elixir
+defmodule Part2 do
+  def summarize(patterns) do
+    for pattern <- patterns do
+      {axis, {index, _}} =
+        reflect(pattern)
+
+      left = index + 1
+      if axis == :x, do: left, else: 100 * left
+    end
+    |> Enum.sum()
+  end
+
+  def reflect(pattern) do
+    [:x, :y]
+    |> Enum.map(fn axis -> {axis, reflect_along(pattern, axis)} end)
+    |> Enum.max_by(fn {_, {_, size}} -> size end)
+  end
+
+  def reflect_along(pattern, axis) do
+    0..Nx.axis_size(pattern, axis)
+    |> Enum.reduce({-1, -1}, fn index, prev ->
+      {start, size, smudge} = reflect_at(pattern, axis, index)
+      if smudge, do: {start, size}, else: prev
+    end)
+  end
+
+  def reflect_at(pattern, axis, index), do: reflect_at(pattern, axis, index, index + 1, false)
+
+  def reflect_at(pattern, axis, left, right, smudge) do
+    if left < 0 or right >= Nx.axis_size(pattern, axis) do
+      reflection(left + 1, right - 1, smudge)
+    else
+      left_tensor = pattern[Keyword.new([{axis, left}])]
+      right_tensor = pattern[Keyword.new([{axis, right}])]
+
+      if left_tensor != right_tensor do
+        if smudge or
+             Nx.equal(left_tensor, right_tensor)
+             |> Nx.logical_not()
+             |> Nx.sum() != Nx.tensor(1, type: :u64) do
+          {-1, -1, false}
+        else
+          reflect_at(pattern, axis, left - 1, right + 1, true)
+        end
+      else
+        reflect_at(pattern, axis, left - 1, right + 1, smudge)
+      end
+    end
+  end
+
+  def reflection(left, right, _) when left > right, do: {-1, -1, false}
+
+  def reflection(left, right, smudge) do
+    size = div(right - left, 2)
+    {left + size, size, smudge}
+  end
+end
+
+input
+|> Part1.parse()
+|> Part2.summarize()
+```
+
+<!-- livebook:{"offset":3736,"stamp":{"token":"XCP.2NQYbKWYLhuMRhSz3sqTlsWmMSchmtpJ9wAxq74SGIbtv0TeSEdYJ32b6HN1AXR-34zcEMSMXvNlzomc91T_VHCJniygNXwmTlHh88CoiNH2ULzPqGI","version":2}} -->
