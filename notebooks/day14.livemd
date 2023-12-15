@@ -1,0 +1,186 @@
+# Day 14
+
+```elixir
+Mix.install([
+  {:req, "~> 0.4.5"},
+  {:kino, "~> 0.11.3"}
+])
+```
+
+## Input
+
+```elixir
+input =
+  Req.get!(
+    "https://adventofcode.com/2023/day/14/input",
+    headers: [{"Cookie", ~s"session=#{System.fetch_env!("LB_AOC_SESSION")}"}]
+  ).body
+
+Kino.Text.new(input, terminal: true)
+```
+
+## Part 1
+
+```elixir
+defmodule Part1 do
+  defstruct [:cs, :rs, :sz]
+  alias __MODULE__, as: P
+
+  def parse(input) do
+    lines =
+      input
+      |> String.split("\n", trim: true)
+
+    sz = length(lines)
+
+    {cs, rs} =
+      for {line, y} <- lines |> Enum.with_index(),
+          {char, x} <- String.graphemes(line) |> Enum.with_index(),
+          reduce: {MapSet.new(), MapSet.new()} do
+        {cs, rs} ->
+          case char do
+            "#" -> {MapSet.put(cs, [y, x]), rs}
+            "O" -> {cs, MapSet.put(rs, [y, x])}
+            _ -> {cs, rs}
+          end
+      end
+
+    %P{cs: cs, rs: rs, sz: sz}
+  end
+
+  def stringify(%P{cs: cs, rs: rs, sz: sz}) do
+    for y <- 0..(sz - 1) do
+      for x <- 0..(sz - 1) do
+        coord = [y, x]
+
+        cond do
+          MapSet.member?(cs, coord) -> "#"
+          MapSet.member?(rs, coord) -> "O"
+          true -> "."
+        end
+      end
+      |> Enum.join()
+      |> Kernel.<>("\n")
+    end
+    |> Enum.join()
+  end
+
+  def print(%P{} = p) do
+    p
+    |> stringify()
+    |> IO.puts()
+  end
+
+  def tilt(%P{} = p, :north), do: tilt(p, [1, 0])
+  def tilt(%P{} = p, :west), do: tilt(p, [0, 1])
+  def tilt(%P{} = p, :south), do: tilt(p, [-1, 0])
+  def tilt(%P{} = p, :east), do: tilt(p, [0, -1])
+
+  def tilt(%P{cs: cs, sz: sz} = p, delta) do
+    axis = Enum.find_index(delta, &(&1 != 0))
+    axis_delta = Enum.at(delta, axis)
+    axis_pos = if axis_delta < 0, do: sz - 1, else: 0
+
+    0..(sz - 1)
+    |> Stream.map(fn off_axis_pos ->
+      off_axis_pos
+      |> List.duplicate(2)
+      |> List.replace_at(axis, axis_pos)
+    end)
+    |> Stream.concat(
+      for coord <- cs do
+        List.update_at(coord, axis, &(&1 + axis_delta))
+      end
+    )
+    |> Enum.reduce(p, fn initial, p ->
+      roll(p, initial, delta)
+    end)
+  end
+
+  def roll(
+        %P{cs: cs, rs: rs, sz: sz} = p,
+        initial,
+        delta
+      ) do
+    axis = Enum.find_index(delta, &(&1 != 0))
+    axis_delta = Enum.at(delta, axis)
+    axis_limit = if axis_delta < 0, do: -1, else: sz
+    init_axis_pos = Enum.at(initial, axis)
+    off_axis_pos = Enum.at(initial, 1 - axis)
+
+    rs =
+      init_axis_pos..axis_limit//axis_delta
+      |> Stream.map(fn axis_pos ->
+        off_axis_pos
+        |> List.duplicate(2)
+        |> List.replace_at(axis, axis_pos)
+      end)
+      |> Stream.take_while(fn coord -> not MapSet.member?(cs, coord) end)
+      |> Stream.filter(fn coord -> MapSet.member?(rs, coord) end)
+      |> Stream.with_index()
+      |> Enum.reduce(rs, fn {coord, offset}, rs ->
+        rs
+        |> MapSet.delete(coord)
+        |> MapSet.put(List.replace_at(coord, axis, init_axis_pos + offset * axis_delta))
+      end)
+
+    %P{p | rs: rs}
+  end
+
+  def total_load(%P{rs: rs, sz: sz}) do
+    rs
+    |> Enum.map(fn [y, _] -> sz - y end)
+    |> Enum.sum()
+  end
+end
+
+input
+|> Part1.parse()
+|> Part1.tilt(:north)
+|> Part1.total_load()
+```
+
+## Part 2
+
+```elixir
+defmodule Part2 do
+  alias Part1, as: P
+
+  def spin(%P{} = p) do
+    p
+    |> P.tilt(:north)
+    |> P.tilt(:west)
+    |> P.tilt(:south)
+    |> P.tilt(:east)
+  end
+end
+
+p = Part1.parse(input)
+
+{p, c0, c1} =
+  Stream.iterate(1, &(&1 + 1))
+  |> Enum.reduce_while({p, %{}, -1}, fn i, {p, acc, c} ->
+    p = Part2.spin(p)
+    s = Part1.stringify(p)
+    acc = Map.update(acc, s, 1, &(&1 + 1))
+
+    cond do
+      acc[s] == 3 ->
+        {:halt, {p, c, i - c}}
+
+      acc[s] == 2 and c < 0 ->
+        {:cont, {p, acc, i}}
+
+      true ->
+        {:cont, {p, acc, c}}
+    end
+  end)
+
+n = rem(1_000_000_000 - (c0 + c1), c1)
+
+1..n
+|> Enum.reduce(p, fn _, p -> Part2.spin(p) end)
+|> Part1.total_load()
+```
+
+<!-- livebook:{"offset":3897,"stamp":{"token":"XCP.jk2OdGnkWBl6qnJm_4TI68fTp-zdokQCzRO1k8w37Tz7AODJDZ02bdBAvFArsfVXiE8v3l3OQHemy991hASE05KMZGaWFmDNevDyf98Wnjb6HK1_0k4","version":2}} -->
