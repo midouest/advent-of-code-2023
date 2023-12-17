@@ -1,0 +1,127 @@
+# Day 16
+
+```elixir
+Mix.install([
+  {:req, "~> 0.4.5"},
+  {:kino, "~> 0.11.3"}
+])
+```
+
+## Input
+
+```elixir
+input =
+  Req.get!(
+    "https://adventofcode.com/2023/day/16/input",
+    headers: [{"Cookie", ~s"session=#{System.fetch_env!("LB_AOC_SESSION")}"}]
+  ).body
+
+Kino.Text.new(input, terminal: true)
+```
+
+## Part 1
+
+```elixir
+defmodule Part1 do
+  def parse(input) do
+    lines = String.split(input, "\n", trim: true)
+    size = length(lines)
+
+    map =
+      for {line, y} <- lines |> Enum.with_index(),
+          {char, x} <- String.to_charlist(line) |> Enum.with_index(),
+          reduce: %{} do
+        acc -> if char == ?., do: acc, else: Map.put(acc, {y, x}, char)
+      end
+
+    {map, size}
+  end
+
+  def bounce({map, size}, beam), do: bounce(map, size, [beam], MapSet.new())
+  def bounce(_, _, [], path), do: path
+
+  def bounce(map, size, [{{y, x} = curr, {dy, dx} = delta} = beam | beams], path) do
+    if y < 0 or y >= size or x < 0 or x >= size or MapSet.member?(path, beam) do
+      bounce(map, size, beams, path)
+    else
+      path = MapSet.put(path, beam)
+
+      case map[curr] do
+        nil ->
+          bounce(map, size, [{{y + dy, x + dx}, {dy, dx}} | beams], path)
+
+        ?/ ->
+          case delta do
+            {1, 0} -> bounce(map, size, [{{y, x - 1}, {0, -1}} | beams], path)
+            {-1, 0} -> bounce(map, size, [{{y, x + 1}, {0, 1}} | beams], path)
+            {0, 1} -> bounce(map, size, [{{y - 1, x}, {-1, 0}} | beams], path)
+            {0, -1} -> bounce(map, size, [{{y + 1, x}, {1, 0}} | beams], path)
+          end
+
+        ?\\ ->
+          case delta do
+            {1, 0} -> bounce(map, size, [{{y, x + 1}, {0, 1}} | beams], path)
+            {-1, 0} -> bounce(map, size, [{{y, x - 1}, {0, -1}} | beams], path)
+            {0, 1} -> bounce(map, size, [{{y + 1, x}, {1, 0}} | beams], path)
+            {0, -1} -> bounce(map, size, [{{y - 1, x}, {-1, 0}} | beams], path)
+          end
+
+        ?- ->
+          if dy == 0 do
+            bounce(map, size, [{{y + dy, x + dx}, {dy, dx}} | beams], path)
+          else
+            path = MapSet.put(path, {{y, x}, {-dy, dx}})
+            left = {{y, x - 1}, {0, -1}}
+            right = {{y, x + 1}, {0, 1}}
+            bounce(map, size, [left, right] ++ beams, path)
+          end
+
+        ?| ->
+          if dx == 0 do
+            bounce(map, size, [{{y + dy, x + dx}, {dy, dx}} | beams], path)
+          else
+            path = MapSet.put(path, {{y, x}, {dy, -dx}})
+            up = {{y - 1, x}, {-1, 0}}
+            down = {{y + 1, x}, {1, 0}}
+            bounce(map, size, [up, down] ++ beams, path)
+          end
+      end
+    end
+  end
+
+  def energized(path) do
+    path
+    |> Enum.map(&elem(&1, 0))
+    |> MapSet.new()
+    |> MapSet.size()
+  end
+end
+
+Part1.parse(input)
+|> Part1.bounce({{0, 0}, {0, 1}})
+|> Part1.energized()
+```
+
+## Part 2
+
+```elixir
+defmodule Part2 do
+  def maximize({map, size}) do
+    Enum.flat_map(0..(size - 1), fn i ->
+      [
+        {{0, i}, {1, 0}},
+        {{i, 0}, {0, 1}},
+        {{size - 1, i}, {-1, 0}},
+        {{i, size - 1}, {0, -1}}
+      ]
+    end)
+    |> Enum.map(fn beam -> Part1.bounce({map, size}, beam) |> Part1.energized() end)
+    |> Enum.max()
+  end
+end
+
+Part1.parse(input)
+|> Part2.maximize()
+```
+
+<!-- livebook:{"offset":3238,"stamp":{"token":"XCP.BDZ806S-aQ6OybdQtVyUAP59z7_a-drDvyR78EcoxRNfqCvanSC9Csj-rd-S6akzuhKc5mX10Gr9HOwjUOnUKIly3Sn38LsUnW1APtdY-pnIruO--ds","version":2}} -->

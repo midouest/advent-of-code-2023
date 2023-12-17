@@ -1,0 +1,222 @@
+# Day 17
+
+```elixir
+Mix.install([
+  {:req, "~> 0.4.5"},
+  {:kino, "~> 0.11.3"}
+])
+```
+
+## Input
+
+```elixir
+input =
+  Req.get!(
+    "https://adventofcode.com/2023/day/17/input",
+    headers: [{"Cookie", ~s"session=#{System.fetch_env!("LB_AOC_SESSION")}"}]
+  ).body
+
+Kino.Text.new(input, terminal: true)
+```
+
+## Part 1
+
+```elixir
+defmodule Part1 do
+  def parse(input) do
+    for line <- String.split(input, "\n", trim: true) do
+      for char <- String.graphemes(line) do
+        String.to_integer(char)
+      end
+    end
+  end
+
+  def print(map, path) do
+    for {line, y1} <- Enum.with_index(map) do
+      for {loss, x1} <- Enum.with_index(line) do
+        index = Enum.find_index(path, fn pos -> pos == {y1, x1} end)
+
+        char =
+          if index != nil and index > 0 do
+            {y0, x0} = Enum.at(path, index - 1)
+            dy = y1 - y0
+            dx = x1 - x0
+
+            case {dy, dx} do
+              {1, 0} -> "v"
+              {0, 1} -> ">"
+              {-1, 0} -> "^"
+              {0, -1} -> "<"
+            end
+          else
+            Integer.to_string(loss)
+          end
+
+        IO.write(char)
+      end
+
+      IO.puts("")
+    end
+  end
+
+  def total_loss(map, path) do
+    path
+    |> Enum.drop(1)
+    |> Enum.map(fn {y, x} -> map |> Enum.at(y) |> Enum.at(x) end)
+    |> Enum.sum()
+  end
+
+  def reconstruct(prev, state), do: reconstruct(prev, state, [])
+  def reconstruct(_, nil, path), do: path
+
+  def reconstruct(prev, {pos, _, _} = state, path),
+    do: reconstruct(prev, prev[state], [pos | path])
+
+  @deltas [{1, 0}, {0, 1}, {-1, 0}, {0, -1}]
+
+  def search(map) do
+    goal = length(map) - 1
+    start = {0, 0}
+    dist = %{{start, nil, 0} => 0}
+    prev = %{}
+    state = {0, 0, start, nil}
+    queue = :gb_sets.empty()
+    queue = :gb_sets.insert(state, queue)
+    search(map, goal, dist, prev, queue)
+  end
+
+  def search(map, goal, dist, prev, queue) do
+    {curr_loss, curr_rep, {curr_y, curr_x} = curr_pos, curr_delta} =
+      curr_state = :gb_sets.smallest(queue)
+
+    queue = :gb_sets.delete(curr_state, queue)
+
+    if curr_y == goal and curr_x == goal do
+      reconstruct(prev, {curr_pos, curr_delta, curr_rep})
+    else
+      {dist, prev, queue} =
+        @deltas
+        |> Stream.map(fn {next_dy, next_dx} = next_delta ->
+          next_pos = {curr_y + next_dy, curr_x + next_dx}
+          next_rep = if next_delta == curr_delta, do: curr_rep + 1, else: 1
+          {next_pos, next_delta, next_rep}
+        end)
+        |> Stream.reject(fn {{next_y, next_x}, {next_dy, next_dx}, next_rep} ->
+          next_y < 0 or next_x < 0 or next_y > goal or next_x > goal or next_rep > 3 or
+            (curr_delta != nil and
+               {next_dy, next_dx} == {elem(curr_delta, 0) * -1, elem(curr_delta, 1) * -1})
+        end)
+        |> Enum.reduce(
+          {dist, prev, queue},
+          fn {{next_y, next_x} = next_pos, next_delta, next_rep}, {dist, prev, queue} ->
+            next_loss = curr_loss + (map |> Enum.at(next_y) |> Enum.at(next_x))
+
+            if next_loss >= dist[{next_pos, next_delta, next_rep}] do
+              {dist, prev, queue}
+            else
+              dist = Map.put(dist, {next_pos, next_delta, next_rep}, next_loss)
+
+              prev =
+                Map.put(prev, {next_pos, next_delta, next_rep}, {curr_pos, curr_delta, curr_rep})
+
+              next_state = {next_loss, next_rep, next_pos, next_delta}
+              queue = :gb_sets.insert(next_state, queue)
+
+              {dist, prev, queue}
+            end
+          end
+        )
+
+      search(map, goal, dist, prev, queue)
+    end
+  end
+end
+
+map = Part1.parse(input)
+path = Part1.search(map)
+Part1.print(map, path)
+Part1.total_loss(map, path)
+```
+
+## Part 2
+
+```elixir
+defmodule Part2 do
+  @deltas [{1, 0}, {0, 1}, {-1, 0}, {0, -1}]
+
+  def search(map) do
+    goal = {length(map) - 1, length(hd(map)) - 1}
+    start = {0, 0}
+    dist = %{{start, nil, 0} => 0}
+    prev = %{}
+    state = {0, 0, start, nil}
+    queue = :gb_sets.empty()
+    queue = :gb_sets.insert(state, queue)
+    search(map, goal, dist, prev, queue)
+  end
+
+  def search(map, {goal_y, goal_x} = goal, dist, prev, queue) do
+    {curr_loss, curr_rep, {curr_y, curr_x} = curr_pos, curr_delta} =
+      curr_state = :gb_sets.smallest(queue)
+
+    queue = :gb_sets.delete(curr_state, queue)
+
+    if curr_y == goal_y and curr_x == goal_x do
+      if curr_rep < 4 do
+        search(map, goal, dist, prev, queue)
+      else
+        Part1.reconstruct(prev, {curr_pos, curr_delta, curr_rep})
+      end
+    else
+      {dist, prev, queue} =
+        @deltas
+        |> Stream.map(fn {next_dy, next_dx} = next_delta ->
+          next_pos = {curr_y + next_dy, curr_x + next_dx}
+          next_rep = if next_delta == curr_delta, do: curr_rep + 1, else: 1
+          {next_pos, next_delta, next_rep}
+        end)
+        |> Stream.reject(fn {{next_y, next_x}, {next_dy, next_dx} = next_delta, next_rep} ->
+          case curr_delta do
+            nil ->
+              false
+
+            {curr_dy, curr_dx} ->
+              next_y < 0 or next_x < 0 or next_y > goal_y or next_x > goal_x or
+                (next_delta != curr_delta and curr_rep < 4) or
+                (next_delta == curr_delta and next_rep > 10) or
+                (next_dy == curr_dy * -1 and next_dx == curr_dx * -1)
+          end
+        end)
+        |> Enum.reduce(
+          {dist, prev, queue},
+          fn {{next_y, next_x} = next_pos, next_delta, next_rep}, {dist, prev, queue} ->
+            next_loss = curr_loss + (map |> Enum.at(next_y) |> Enum.at(next_x))
+
+            if next_loss >= dist[{next_pos, next_delta, next_rep}] do
+              {dist, prev, queue}
+            else
+              dist = Map.put(dist, {next_pos, next_delta, next_rep}, next_loss)
+
+              prev =
+                Map.put(prev, {next_pos, next_delta, next_rep}, {curr_pos, curr_delta, curr_rep})
+
+              next_state = {next_loss, next_rep, next_pos, next_delta}
+              queue = :gb_sets.insert(next_state, queue)
+
+              {dist, prev, queue}
+            end
+          end
+        )
+
+      search(map, goal, dist, prev, queue)
+    end
+  end
+end
+
+map = Part1.parse(input)
+path = Part2.search(map)
+Part1.print(map, path)
+Part1.total_loss(map, path)
+```
+
+<!-- livebook:{"offset":6213,"stamp":{"token":"XCP.RJUOGx7PtwpqdK0YPTKCvkqn2mG7cawuN3EHO3xYIn-7l2EnNCjEm8u-l6GsIOu8BFTNYOP8YLvXt5P0K4Bl_S_XRwM_dhEzq3xqUEMnBh7csDyPGCA","version":2}} -->

@@ -1,0 +1,99 @@
+# Day 15
+
+```elixir
+Mix.install([
+  {:req, "~> 0.4.5"},
+  {:kino, "~> 0.11.3"}
+])
+```
+
+## Input
+
+```elixir
+input =
+  Req.get!(
+    "https://adventofcode.com/2023/day/15/input",
+    headers: [{"Cookie", ~s"session=#{System.fetch_env!("LB_AOC_SESSION")}"}]
+  ).body
+```
+
+## Part 1
+
+```elixir
+defmodule Part1 do
+  def parse(input) do
+    input
+    |> String.trim_trailing("\n")
+    |> String.split(",")
+  end
+
+  def hash(str) do
+    for code <- String.to_charlist(str), reduce: 0 do
+      acc -> rem(17 * (acc + code), 256)
+    end
+  end
+end
+
+Part1.parse(input)
+|> Enum.map(&Part1.hash/1)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+defmodule Part2 do
+  def initialize(strs) do
+    for str <- strs, reduce: %{} do
+      boxes -> step(str, boxes)
+    end
+  end
+
+  def step(str, boxes) do
+    case Regex.run(~r/(\w+)([-=])(\d+)?/, str, capture: :all_but_first) do
+      [label, "-"] ->
+        key = Part1.hash(label)
+
+        Map.update(boxes, key, [], fn box ->
+          index =
+            Enum.find_index(box, fn {other, _} ->
+              other == label
+            end)
+
+          if index, do: List.delete_at(box, index), else: box
+        end)
+
+      [label, "=", flen] ->
+        key = Part1.hash(label)
+        lens = {label, flen}
+
+        Map.update(boxes, key, [lens], fn box ->
+          index =
+            Enum.find_index(box, fn {other, _} ->
+              other == label
+            end)
+
+          if index do
+            List.replace_at(box, index, lens)
+          else
+            box ++ [lens]
+          end
+        end)
+    end
+  end
+
+  def power(boxes) do
+    for {box, lenses} <- boxes,
+        {{_, flen}, slot} <- Enum.with_index(lenses, 1),
+        reduce: 0 do
+      acc -> acc + (1 + box) * String.to_integer(flen) * slot
+    end
+  end
+end
+
+Part1.parse(input)
+|> Part2.initialize()
+|> Part2.power()
+```
+
+<!-- livebook:{"offset":1826,"stamp":{"token":"XCP.Idvbp2fT7ey8WvkljMq52QbdRaf189dwBfz0oH8gVnbd4xoUrlJgneH6YN5ohgOMF7Yp2DYh8Z1nEcjXZn9YJ_GdV2qrmFnf3qHx80oy8nFvGS8SyVE","version":2}} -->
