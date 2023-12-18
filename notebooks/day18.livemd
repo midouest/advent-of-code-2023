@@ -3,7 +3,8 @@
 ```elixir
 Mix.install([
   {:req, "~> 0.4.5"},
-  {:kino, "~> 0.11.3"}
+  {:kino, "~> 0.11.3"},
+  {:nx, "~> 0.6.4"}
 ])
 ```
 
@@ -148,11 +149,37 @@ defmodule Part2 do
       |> Enum.sum()
       |> div(2)
 
-    area + perimeter + 1
+    answer = area + perimeter + 1
+
+    tensor =
+      segments
+      |> Nx.tensor(type: :f64)
+
+    area_nx =
+      tensor
+      |> Nx.LinAlg.determinant()
+      |> Nx.sum()
+      |> Nx.abs()
+      |> Nx.divide(2)
+
+    perimeter_nx =
+      Nx.abs(Nx.subtract(tensor[[.., 0, 0]], tensor[[.., 1, 0]]))
+      |> Nx.add(Nx.abs(Nx.subtract(tensor[[.., 0, 1]], tensor[[.., 1, 1]])))
+      |> Nx.sum()
+      |> Nx.divide(2)
+      |> Nx.add(1)
+
+    answer_nx =
+      area_nx
+      |> Nx.add(perimeter_nx)
+      |> Nx.as_type(:u64)
+      |> Nx.to_number()
+
+    {answer, answer_nx}
   end
 end
 
-Part2.dig(input)
+t = Part2.dig(input)
 ```
 
-<!-- livebook:{"offset":3353,"stamp":{"token":"XCP.bIo2Td34ESHUyMVzE_HybzLlZ6draJFnNuvaDaVtPiqoBoZWjA88C6Xl_m_jUn2YQnxZGxcLEXlKEf9eSVvmrzjK58ougfn4Xwqks_XduWbEAtqDeLE","version":2}} -->
+<!-- livebook:{"offset":3924,"stamp":{"token":"XCP.MhtSskCmb_w5IzAoUxSFBbSZHJ_WGPveHMfpRL6EyxaP7iUbJqP48QZ3Cixn276FqYrLaubC0i4sZXqXnfYgXX-fyNvD6TXdHe-MdeKkoRoaX5bhMU4","version":2}} -->
