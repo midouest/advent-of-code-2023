@@ -1,0 +1,145 @@
+# Day 19
+
+```elixir
+Mix.install([
+  {:req, "~> 0.4.5"},
+  {:kino, "~> 0.11.3"}
+])
+```
+
+## Input
+
+```elixir
+input =
+  Req.get!(
+    "https://adventofcode.com/2023/day/19/input",
+    headers: [{"Cookie", ~s"session=#{System.fetch_env!("LB_AOC_SESSION")}"}]
+  ).body
+
+Kino.Text.new(input, terminal: true)
+```
+
+## Part 1
+
+```elixir
+defmodule Part1 do
+  def parse(input) do
+    [workflows, ratings] = String.split(input, "\n\n")
+
+    workflows =
+      for line <- String.split(workflows, "\n", trim: true), into: %{} do
+        [name, rules] = String.split(line, ["{", "}"], trim: true)
+
+        rules =
+          for rule <- String.split(rules, ",") do
+            case Regex.run(~r/(?:(\w)([<>])(\d+):)?(\w+)/, rule, capture: :all_but_first) do
+              ["", "", "", output] ->
+                output
+
+              [category, op, threshold, output] ->
+                threshold = String.to_integer(threshold)
+                {category, op, threshold, output}
+            end
+          end
+
+        {name, rules}
+      end
+
+    ratings =
+      for line <- String.split(ratings, "\n", trim: true) do
+        for field <- String.split(line, ["{", "}", ","], trim: true), into: %{} do
+          [key, value] = String.split(field, "=")
+          {key, String.to_integer(value)}
+        end
+      end
+
+    {workflows, ratings}
+  end
+
+  def eval(rating, workflows), do: eval(rating, workflows, "in")
+  def eval(_, _, "R"), do: false
+  def eval(_, _, "A"), do: true
+  def eval(rating, workflows, <<name::binary>>), do: eval(rating, workflows, workflows[name])
+  def eval(rating, workflows, [<<name::binary>>]), do: eval(rating, workflows, name)
+
+  def eval(rating, workflows, [{category, op, threshold, output} | rules]) do
+    fun = if op == "<", do: &Kernel.</2, else: &Kernel.>/2
+    next = if fun.(rating[category], threshold), do: output, else: rules
+    eval(rating, workflows, next)
+  end
+end
+
+{workflows, ratings} = Part1.parse(input)
+
+ratings
+|> Enum.filter(&Part1.eval(&1, workflows))
+|> Enum.flat_map(&Map.values/1)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+defmodule Part2 do
+  def acceptance(workflows), do: acceptance("in", workflows) |> Enum.map(&flatten/1)
+
+  def acceptance("R", _), do: false
+  def acceptance("A", _), do: true
+  def acceptance(<<name::binary>>, workflows), do: acceptance(workflows[name], workflows)
+  def acceptance([<<name::binary>>], workflows), do: acceptance(name, workflows)
+
+  def acceptance([{category, op, threshold, output} | rest], workflows) do
+    left =
+      output
+      |> acceptance(workflows)
+      |> prepend({category, op, threshold})
+
+    right_op = if op === "<", do: ">=", else: "<="
+
+    right =
+      rest
+      |> acceptance(workflows)
+      |> prepend({category, right_op, threshold})
+
+    left ++ right
+  end
+
+  def prepend(false, _), do: []
+  def prepend(true, rule), do: [[rule]]
+  def prepend(branches, rule), do: Enum.map(branches, &[rule | &1])
+
+  @input "xmas"
+         |> String.graphemes()
+         |> Enum.map(&{&1, 1..4000})
+         |> Map.new()
+
+  def flatten(branch), do: flatten(branch, @input)
+  def flatten([], acc), do: acc
+
+  def flatten([{category, op, threshold} | branch], acc) do
+    lo..hi = acc[category]
+
+    range =
+      case op do
+        ">" -> max(threshold + 1, lo)..hi
+        ">=" -> max(threshold, lo)..hi
+        "<" -> lo..min(threshold - 1, hi)
+        "<=" -> lo..min(threshold, hi)
+      end
+
+    acc = %{acc | category => range}
+    flatten(branch, acc)
+  end
+end
+
+Part2.acceptance(workflows)
+|> Enum.map(fn rating ->
+  rating
+  |> Map.values()
+  |> Enum.map(&Enum.count/1)
+  |> Enum.product()
+end)
+|> Enum.sum()
+```
+
+<!-- livebook:{"offset":3614,"stamp":{"token":"XCP.YHR6mITIzkRbSOvKTMimtWaokKNnUVWTrWEwTMkUmVUz5tgRhmeTKK60vzXD6gPMz_ubAoR5ZOL5_60z6WbeCZGWZD_uHQiZKCYbnGOeoZr1NNG0LNU","version":2}} -->
